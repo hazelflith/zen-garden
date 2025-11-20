@@ -31,3 +31,9 @@ yarn-error.log*
 
 # Debug
 .gemini/
+
+# Resources (hosted on Vercel Blob)
+/resources/
+
+# Uploaded URLs tracker
+uploaded-urls.json
