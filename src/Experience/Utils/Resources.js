@@ -87,7 +87,32 @@ export default class Resources extends EventEmitter {
 
     this.loaded++
 
+    // Update loading progress
+    const progress = (this.loaded / this.toLoad) * 100
+    this.trigger('progress', [progress])
+
+    // Update loading UI
+    const loadingBar = document.getElementById('loading-bar')
+    const loadingPercentage = document.getElementById('loading-percentage')
+    if (loadingBar) {
+      loadingBar.style.width = `${progress}%`
+    }
+    if (loadingPercentage) {
+      loadingPercentage.textContent = `${Math.round(progress)}%`
+    }
+
     if (this.loaded === this.toLoad) {
+      // Hide loading screen after a short delay
+      setTimeout(() => {
+        const loadingScreen = document.getElementById('loading-screen')
+        if (loadingScreen) {
+          loadingScreen.style.opacity = '0'
+          setTimeout(() => {
+            loadingScreen.style.display = 'none'
+          }, 500)
+        }
+      }, 300)
+
       this.trigger('ready')
     }
   }

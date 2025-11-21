@@ -60,7 +60,7 @@ export default class Lantern {
     this.group.add(knob)
 
     // Light
-    this.light = new THREE.PointLight('#ffaa00', 50, 20) // Intensity 50, distance 20
+    this.light = new THREE.PointLight('#ffaa00', 50, 50) // Intensity 50, distance 50 (max)
     this.light.position.y = 0.2 + 1.5 + 0.2 + 0.5
     this.light.castShadow = true
     this.light.shadow.mapSize.set(512, 512)

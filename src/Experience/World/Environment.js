@@ -16,7 +16,16 @@ export default class Environment {
       sunIntensity: 1.2,
       ambientIntensity: 0.9,
       envMapIntensity: 0.0,
-      fogDensity: 0.014
+      fogDensity: 0.014,
+      fogColor: '#d4c4a8'
+    }
+
+    // Night lighting settings (configurable)
+    this.nightLighting = {
+      ambientIntensity: 0.01,
+      moonIntensity: 0.2,
+      fogDensityMultiplier: 1,
+      fogColor: '#3b3446'
     }
 
     // Wind settings
@@ -74,9 +83,17 @@ export default class Environment {
       dayFolder.add(this.dayLighting, 'ambientIntensity').min(0).max(5).step(0.1).name('Ambient Intensity').onChange(() => this.updateSunPosition())
       dayFolder.add(this.dayLighting, 'envMapIntensity').min(0).max(5).step(0.1).name('Env Intensity').onChange(() => this.updateSunPosition())
       dayFolder.add(this.dayLighting, 'fogDensity').min(0).max(0.2).step(0.001).name('Fog Density').onChange(() => this.updateSunPosition())
+      dayFolder.addColor(this.dayLighting, 'fogColor').name('Fog Color').onChange(() => this.updateSunPosition())
 
       debugFolder.addColor(this.sunLight, 'color').name('sunLightColor')
       debugFolder.addColor(this.ambientLight, 'color').name('ambientLightColor')
+
+      // Night lighting controls
+      const nightFolder = debugFolder.addFolder('Night Lighting')
+      nightFolder.add(this.nightLighting, 'ambientIntensity').min(0).max(0.1).step(0.001).name('Ambient Intensity').onChange(() => this.updateSunPosition())
+      nightFolder.add(this.nightLighting, 'moonIntensity').min(0).max(2).step(0.1).name('Moon Intensity').onChange(() => this.updateSunPosition())
+      nightFolder.add(this.nightLighting, 'fogDensityMultiplier').min(0).max(1).step(0.05).name('Fog Density Mult').onChange(() => this.updateSunPosition())
+      nightFolder.addColor(this.nightLighting, 'fogColor').name('Fog Color').onChange(() => this.updateSunPosition())
 
       // Wind controls
       const windFolder = debugFolder.addFolder('Wind')
@@ -181,16 +198,18 @@ export default class Environment {
     // Define keyframes for lighting parameters
     // Format: [hour, sunIntensity, sunColor, ambientIntensity, ambientColor, moonIntensity, envIntensity, bgIntensity, overlayColor, overlayOpacity, fogDensity, fogColor]
     const fogBase = this.dayLighting.fogDensity
+    const nightFogCol = parseInt(this.nightLighting.fogColor.replace('#', '0x'))
+    const dayFogCol = parseInt(this.dayLighting.fogColor.replace('#', '0x'))
     const keyframes = [
-      { hour: 0, sunInt: 0, sunCol: 0xfff5e6, ambInt: 0.01, ambCol: 0x4a5f7f, moonInt: 0.6, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * 0.2, fogCol: 0x0a0a40 },
-      { hour: 4, sunInt: 0, sunCol: 0xffa366, ambInt: 0.01, ambCol: 0x4a5f7f, moonInt: 0.6, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * 0.2, fogCol: 0x0a0a40 },
+      { hour: 0, sunInt: 0, sunCol: 0xfff5e6, ambInt: this.nightLighting.ambientIntensity, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol },
+      { hour: 4, sunInt: 0, sunCol: 0xffa366, ambInt: this.nightLighting.ambientIntensity, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol },
       { hour: 6, sunInt: 0.5, sunCol: 0xffa366, ambInt: 0.4, ambCol: 0xd4a574, moonInt: 0.3, envInt: 0.0, bgInt: 0.4, ovCol: 0xff8844, ovOp: 0.5, fogDens: fogBase * 0.5, fogCol: 0xff8844 },
-      { hour: 8, sunInt: this.dayLighting.sunIntensity * 0.8, sunCol: 0xfff0d9, ambInt: this.dayLighting.ambientIntensity * 0.8, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity * 0.8, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: 0xd4c4a8 },
-      { hour: 12, sunInt: this.dayLighting.sunIntensity, sunCol: 0xfff5e6, ambInt: this.dayLighting.ambientIntensity, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: 0xd4c4a8 },
-      { hour: 16, sunInt: this.dayLighting.sunIntensity * 0.8, sunCol: 0xfff0d9, ambInt: this.dayLighting.ambientIntensity * 0.8, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity * 0.8, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: 0xd4c4a8 },
+      { hour: 8, sunInt: this.dayLighting.sunIntensity * 0.8, sunCol: 0xfff0d9, ambInt: this.dayLighting.ambientIntensity * 0.8, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity * 0.8, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: dayFogCol },
+      { hour: 12, sunInt: this.dayLighting.sunIntensity, sunCol: 0xfff5e6, ambInt: this.dayLighting.ambientIntensity, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: dayFogCol },
+      { hour: 16, sunInt: this.dayLighting.sunIntensity * 0.8, sunCol: 0xfff0d9, ambInt: this.dayLighting.ambientIntensity * 0.8, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity * 0.8, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: dayFogCol },
       { hour: 18, sunInt: 0.5, sunCol: 0xffa366, ambInt: 0.4, ambCol: 0xd4a574, moonInt: 0.3, envInt: 0.0, bgInt: 0.4, ovCol: 0xff8844, ovOp: 0.5, fogDens: fogBase * 0.5, fogCol: 0xff8844 },
-      { hour: 20, sunInt: 0, sunCol: 0xffa366, ambInt: 0.01, ambCol: 0x4a5f7f, moonInt: 0.6, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * 0.2, fogCol: 0x0a0a40 },
-      { hour: 24, sunInt: 0, sunCol: 0xfff5e6, ambInt: 0.01, ambCol: 0x4a5f7f, moonInt: 0.6, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * 0.2, fogCol: 0x0a0a40 }
+      { hour: 20, sunInt: 0, sunCol: 0xffa366, ambInt: this.nightLighting.ambientIntensity, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol },
+      { hour: 24, sunInt: 0, sunCol: 0xfff5e6, ambInt: this.nightLighting.ambientIntensity, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol }
     ]
 
     // Find current keyframes
@@ -227,23 +246,22 @@ export default class Environment {
     let fogCol = lerpColor(prevKey.fogCol, nextKey.fogCol, progress)
     let envInt = lerp(prevKey.envInt, nextKey.envInt, progress)
 
-    // Apply Weather Blending
+    // Apply Weather Blending - reduces current lighting rather than forcing fixed values
     if (this.weatherFactor > 0) {
-      const stormySunInt = 0.05
-      const stormySunCol = new THREE.Color('#667799')
-      const stormyAmbInt = 0.2
-      const stormyAmbCol = new THREE.Color('#334466')
-      const stormyFogDens = 0.03 // Increased density
-      const stormyFogCol = new THREE.Color('#4a4a4a') // Gray fog
-      const stormyEnvInt = 0.1
+      // Rain reduces sun/ambient intensity and adds gray tint while preserving time of day
+      const rainSunReduction = 0.3 // Reduce to 30% of current
+      const rainAmbReduction = 0.5 // Reduce to 50% of current
+      const rainFogIncrease = 1.8 // Increase fog density
+      const rainyColor = new THREE.Color('#667799')
+      const rainyFogCol = new THREE.Color('#6a6a78')
 
-      sunInt = lerp(sunInt, stormySunInt, this.weatherFactor)
-      sunCol.lerp(stormySunCol, this.weatherFactor)
-      ambInt = lerp(ambInt, stormyAmbInt, this.weatherFactor)
-      ambCol.lerp(stormyAmbCol, this.weatherFactor)
-      fogDens = lerp(fogDens, stormyFogDens, this.weatherFactor)
-      fogCol.lerp(stormyFogCol, this.weatherFactor)
-      envInt = lerp(envInt, stormyEnvInt, this.weatherFactor)
+      sunInt = lerp(sunInt, sunInt * rainSunReduction, this.weatherFactor)
+      sunCol.lerp(rainyColor, this.weatherFactor * 0.3) // Slight color shift
+      ambInt = lerp(ambInt, ambInt * rainAmbReduction, this.weatherFactor)
+      ambCol.lerp(rainyColor, this.weatherFactor * 0.2) // Slight color shift
+      fogDens = lerp(fogDens, fogDens * rainFogIncrease, this.weatherFactor)
+      fogCol.lerp(rainyFogCol, this.weatherFactor * 0.4) // Partial gray tint
+      envInt = lerp(envInt, envInt * 0.5, this.weatherFactor)
     }
 
     this.sunLight.intensity = sunInt
@@ -257,6 +275,10 @@ export default class Environment {
     // Update visibility based on intensity threshold
     this.sunLight.visible = this.sunLight.intensity > 0.01
     this.moonLight.visible = this.moonLight.intensity > 0.01
+
+    // Disable shadow casting at night to prevent weird long shadows
+    this.sunLight.castShadow = this.sunLight.intensity > 0.5
+    this.moonLight.castShadow = this.moonLight.intensity > 0.3
 
     // Update sky overlay
     if (this.skyOverlay) {

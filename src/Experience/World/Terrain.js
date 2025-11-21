@@ -99,7 +99,7 @@ export default class Terrain {
     this.textures.path = this.resources.items.pathTexture
     this.textures.path.wrapS = THREE.RepeatWrapping
     this.textures.path.wrapT = THREE.RepeatWrapping
-    this.textures.path.repeat.set(10, 10) // Tile 10 times for paths
+    this.textures.path.repeat.set(30, 30) // Tile 30 times for paths (smaller texture)
   }
 
   setMaterial() {
@@ -162,7 +162,7 @@ export default class Terrain {
                     
                     // Sample textures
                     vec4 grassSample = texture2D(uGrassTexture, vUv2 * 20.0);
-                    vec4 pathSample = texture2D(uPathTexture, vUv2 * 10.0);
+                    vec4 pathSample = texture2D(uPathTexture, vUv2 * 30.0);
                     
                     // Calculate angle for radial paths
                     float angle = atan(vPosition.z, vPosition.x);
