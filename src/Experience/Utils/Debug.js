@@ -54,4 +54,26 @@ export default class Debug {
 
     this.performanceFolder.open()
   }
+
+  addWeatherControls(world) {
+    if (!this.ui) return
+
+    const weatherFolder = this.ui.addFolder('Weather')
+
+    const params = {
+      rain: false
+    }
+
+    weatherFolder.add(params, 'rain')
+      .name('Rain')
+      .onChange((value) => {
+        if (world.rain) {
+          if (value) {
+            world.rain.enable()
+          } else {
+            world.rain.disable()
+          }
+        }
+      })
+  }
 }

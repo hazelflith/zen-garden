@@ -65,46 +65,63 @@ export default class Trees {
         y = terrain.getHeightAt(x, z)
       }
 
-      // Create LOD object for this tree
-      const lod = new THREE.LOD()
-      lod.position.set(x, y, z)
+      // Check quality preset
+      const isMaxQuality = this.experience.performanceMonitor.getCurrentPreset() === 'max'
 
-      // High detail tree (0-15 units)
-      const treeHigh = new ProceduralTree(
-        lod,
-        new THREE.Vector3(0, 0, 0),
-        0.27 + Math.random() * 0.18,
-        Math.random() * Math.PI * 2,
-        this.windShader
-      )
+      if (isMaxQuality) {
+        // No LOD for max quality - always use high detail
+        const treeHigh = new ProceduralTree(
+          this.group, // Add directly to main group
+          new THREE.Vector3(x, y, z), // Absolute position
+          0.27 + Math.random() * 0.18,
+          Math.random() * Math.PI * 2,
+          this.windShader
+        )
 
-      // Medium detail tree (15-30 units) - 60% segments
-      const treeMedium = new ProceduralTree(
-        lod,
-        new THREE.Vector3(0, 0, 0),
-        0.27 + Math.random() * 0.18,
-        Math.random() * Math.PI * 2,
-        this.windShader,
-        0.6 // Reduce detail to 60%
-      )
+        // We still need to track it for updates
+        this.items.push({ lod: null, trees: [treeHigh] })
+      } else {
+        // Create LOD object for this tree
+        const lod = new THREE.LOD()
+        lod.position.set(x, y, z)
 
-      // Low detail tree (30+ units) - 30% segments
-      const treeLow = new ProceduralTree(
-        lod,
-        new THREE.Vector3(0, 0, 0),
-        0.27 + Math.random() * 0.18,
-        Math.random() * Math.PI * 2,
-        this.windShader,
-        0.3 // Reduce detail to 30%
-      )
+        // High detail tree (0-15 units)
+        const treeHigh = new ProceduralTree(
+          lod,
+          new THREE.Vector3(0, 0, 0),
+          0.27 + Math.random() * 0.18,
+          Math.random() * Math.PI * 2,
+          this.windShader
+        )
 
-      // Set LOD distances
-      lod.addLevel(treeHigh.group || new THREE.Group(), 0)    // 0-15 units
-      lod.addLevel(treeMedium.group || new THREE.Group(), 15) // 15-30 units
-      lod.addLevel(treeLow.group || new THREE.Group(), 30)    // 30+ units
+        // Medium detail tree (15-30 units) - 60% segments
+        const treeMedium = new ProceduralTree(
+          lod,
+          new THREE.Vector3(0, 0, 0),
+          0.27 + Math.random() * 0.18,
+          Math.random() * Math.PI * 2,
+          this.windShader,
+          0.6 // Reduce detail to 60%
+        )
 
-      this.group.add(lod)
-      this.items.push({ lod, trees: [treeHigh, treeMedium, treeLow] })
+        // Low detail tree (30+ units) - 30% segments
+        const treeLow = new ProceduralTree(
+          lod,
+          new THREE.Vector3(0, 0, 0),
+          0.27 + Math.random() * 0.18,
+          Math.random() * Math.PI * 2,
+          this.windShader,
+          0.3 // Reduce detail to 30%
+        )
+
+        // Set LOD distances
+        lod.addLevel(treeHigh.group || new THREE.Group(), 0)    // 0-15 units
+        lod.addLevel(treeMedium.group || new THREE.Group(), 15) // 15-30 units
+        lod.addLevel(treeLow.group || new THREE.Group(), 30)    // 30+ units
+
+        this.group.add(lod)
+        this.items.push({ lod, trees: [treeHigh, treeMedium, treeLow] })
+      }
     }
   }
 

@@ -43,5 +43,10 @@ export default [
     name: 'flowerWhite',
     type: 'gltfModel',
     path: 'https://y91qxhmqe28jmwu9.public.blob.vercel-storage.com/white_flower.glb'
+  },
+  {
+    name: 'rainSound',
+    type: 'audio',
+    path: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg'
   }
 ]

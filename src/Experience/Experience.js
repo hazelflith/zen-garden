@@ -80,6 +80,7 @@ export default class Experience {
     // Add performance controls to debug UI
     if (this.debug.active) {
       this.debug.addPerformanceControls(this.performanceMonitor)
+      this.debug.addWeatherControls(this.world)
     }
 
     // Resize event

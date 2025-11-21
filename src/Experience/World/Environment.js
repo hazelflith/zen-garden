@@ -79,6 +79,26 @@ export default class Environment {
     this.updateSunPosition()
   }
 
+  setStormy() {
+    this.weatherTarget = 1
+  }
+
+  setSunny() {
+    this.weatherTarget = 0
+  }
+
+  update() {
+    // Smoothly transition weather factor
+    if (this.weatherFactor === undefined) this.weatherFactor = 0
+    if (this.weatherTarget === undefined) this.weatherTarget = 0
+
+    const speed = 0.02
+    if (Math.abs(this.weatherFactor - this.weatherTarget) > 0.001) {
+      this.weatherFactor += (this.weatherTarget - this.weatherFactor) * speed
+      this.updateSunPosition() // Force update to apply weather
+    }
+  }
+
   setMoonLight() {
     this.moonLight = new THREE.DirectionalLight('#b0c4de', 0.8)
     this.moonLight.castShadow = true
@@ -157,11 +177,38 @@ export default class Environment {
     const lerp = (v1, v2, alpha) => v1 + (v2 - v1) * alpha
 
     // Apply interpolated values
-    this.sunLight.intensity = lerp(prevKey.sunInt, nextKey.sunInt, progress)
-    this.sunLight.color.copy(lerpColor(prevKey.sunCol, nextKey.sunCol, progress))
+    let sunInt = lerp(prevKey.sunInt, nextKey.sunInt, progress)
+    let sunCol = lerpColor(prevKey.sunCol, nextKey.sunCol, progress)
+    let ambInt = lerp(prevKey.ambInt, nextKey.ambInt, progress)
+    let ambCol = lerpColor(prevKey.ambCol, nextKey.ambCol, progress)
+    let fogDens = lerp(prevKey.fogDens, nextKey.fogDens, progress)
+    let fogCol = lerpColor(prevKey.fogCol, nextKey.fogCol, progress)
+    let envInt = lerp(prevKey.envInt, nextKey.envInt, progress)
 
-    this.ambientLight.intensity = lerp(prevKey.ambInt, nextKey.ambInt, progress)
-    this.ambientLight.color.copy(lerpColor(prevKey.ambCol, nextKey.ambCol, progress))
+    // Apply Weather Blending
+    if (this.weatherFactor > 0) {
+      const stormySunInt = 0.05
+      const stormySunCol = new THREE.Color('#667799')
+      const stormyAmbInt = 0.2
+      const stormyAmbCol = new THREE.Color('#334466')
+      const stormyFogDens = 0.08
+      const stormyFogCol = new THREE.Color('#223344')
+      const stormyEnvInt = 0.1
+
+      sunInt = lerp(sunInt, stormySunInt, this.weatherFactor)
+      sunCol.lerp(stormySunCol, this.weatherFactor)
+      ambInt = lerp(ambInt, stormyAmbInt, this.weatherFactor)
+      ambCol.lerp(stormyAmbCol, this.weatherFactor)
+      fogDens = lerp(fogDens, stormyFogDens, this.weatherFactor)
+      fogCol.lerp(stormyFogCol, this.weatherFactor)
+      envInt = lerp(envInt, stormyEnvInt, this.weatherFactor)
+    }
+
+    this.sunLight.intensity = sunInt
+    this.sunLight.color.copy(sunCol)
+
+    this.ambientLight.intensity = ambInt
+    this.ambientLight.color.copy(ambCol)
 
     this.moonLight.intensity = lerp(prevKey.moonInt, nextKey.moonInt, progress)
 
@@ -173,20 +220,30 @@ export default class Environment {
     if (this.skyOverlay) {
       this.skyOverlay.material.color.copy(lerpColor(prevKey.ovCol, nextKey.ovCol, progress))
       this.skyOverlay.material.opacity = lerp(prevKey.ovOp, nextKey.ovOp, progress)
+
+      // Darken sky in storm
+      if (this.weatherFactor > 0) {
+        this.skyOverlay.material.color.lerp(new THREE.Color('#111122'), this.weatherFactor)
+        this.skyOverlay.material.opacity = lerp(this.skyOverlay.material.opacity, 0.9, this.weatherFactor)
+      }
     }
 
     // Update background intensity
     if (this.scene.backgroundIntensity !== undefined) {
-      this.scene.backgroundIntensity = lerp(prevKey.bgInt, nextKey.bgInt, progress)
+      let bgInt = lerp(prevKey.bgInt, nextKey.bgInt, progress)
+      if (this.weatherFactor > 0) {
+        bgInt = lerp(bgInt, 0.1, this.weatherFactor)
+      }
+      this.scene.backgroundIntensity = bgInt
     }
 
     // Update environment map intensity
-    this.updateEnvMapIntensity(lerp(prevKey.envInt, nextKey.envInt, progress))
+    this.updateEnvMapIntensity(envInt)
 
     // Update fog
     if (this.scene.fog) {
-      this.scene.fog.density = lerp(prevKey.fogDens, nextKey.fogDens, progress)
-      this.scene.fog.color.copy(lerpColor(prevKey.fogCol, nextKey.fogCol, progress))
+      this.scene.fog.density = fogDens
+      this.scene.fog.color.copy(fogCol)
     }
   }
 

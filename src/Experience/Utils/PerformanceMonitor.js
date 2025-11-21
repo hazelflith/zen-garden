@@ -52,7 +52,7 @@ export default class PerformanceMonitor extends EventEmitter {
     this.quality = { ...this.presets.max }
 
     // Auto-adjust settings
-    this.autoAdjust = true
+    this.autoAdjust = false
     this.adjustmentCooldown = 0
     this.adjustmentCooldownTime = 3000 // 3 seconds
   }

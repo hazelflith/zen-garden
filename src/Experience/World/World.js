@@ -12,6 +12,8 @@ import Fences from './Fences.js'
 import Flowers from './Flowers.js'
 import FallingPetals from './FallingPetals.js'
 
+import Rain from './Rain.js'
+
 export default class World {
   constructor() {
     this.experience = new Experience()
@@ -35,6 +37,7 @@ export default class World {
       this.dirtMounds = new DirtMounds()
       this.fences = new Fences()
       this.fallingPetals = new FallingPetals()
+      this.rain = new Rain()
 
       // Update environment settings after all objects are created
       this.environment.updateSunPosition()
@@ -53,6 +56,9 @@ export default class World {
     }
     if (this.trees) {
       this.trees.update()
+    }
+    if (this.rain) {
+      this.rain.update()
     }
   }
 }
