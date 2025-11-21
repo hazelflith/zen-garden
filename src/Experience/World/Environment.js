@@ -77,10 +77,32 @@ export default class Environment {
     }
 
     this.updateSunPosition()
+    this.setAudio()
   }
 
-  setStormy() {
-    this.weatherTarget = 1
+  setAudio() {
+    this.sound = new THREE.Audio(this.experience.camera.audioListener)
+
+    const setBuffer = () => {
+      if (this.resources.items.ambientSound) {
+        this.sound.setBuffer(this.resources.items.ambientSound)
+        this.sound.setLoop(true)
+        this.sound.setVolume(1.5)
+        this.sound.play()
+      }
+    }
+
+    if (this.resources.items.ambientSound) {
+      setBuffer()
+    } else {
+      this.resources.on('ready', () => {
+        setBuffer()
+      })
+    }
+  }
+
+  setStormy(intensity = 1.0) {
+    this.weatherTarget = intensity
   }
 
   setSunny() {
@@ -191,8 +213,8 @@ export default class Environment {
       const stormySunCol = new THREE.Color('#667799')
       const stormyAmbInt = 0.2
       const stormyAmbCol = new THREE.Color('#334466')
-      const stormyFogDens = 0.08
-      const stormyFogCol = new THREE.Color('#223344')
+      const stormyFogDens = 0.03 // Increased density
+      const stormyFogCol = new THREE.Color('#4a4a4a') // Gray fog
       const stormyEnvInt = 0.1
 
       sunInt = lerp(sunInt, stormySunInt, this.weatherFactor)

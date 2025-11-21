@@ -75,5 +75,25 @@ export default class Debug {
           }
         }
       })
+
+    // Rain intensity slider - always visible
+    if (world.rain) {
+      weatherFolder.add(world.rain, 'intensity')
+        .min(0.1)
+        .max(1.0)
+        .step(0.1)
+        .name('Rain Intensity')
+        .onChange((value) => {
+          if (world.rain.enabled) {
+            world.environment.setStormy(value)
+            if (world.rainSplashes) {
+              world.rainSplashes.setIntensity(value)
+            }
+          }
+        })
+    }
+
+    // Keep weather folder open
+    weatherFolder.open()
   }
 }

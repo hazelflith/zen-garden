@@ -7,12 +7,13 @@ import Water from './Water.js'
 import Bridge from './Bridge.js'
 import Rocks from './Rocks.js'
 import Bushes from './Bushes.js'
-import DirtMounds from './DirtMounds.js'
+
 import Fences from './Fences.js'
 import Flowers from './Flowers.js'
 import FallingPetals from './FallingPetals.js'
 
 import Rain from './Rain.js'
+import RainSplashes from './RainSplashes.js'
 
 export default class World {
   constructor() {
@@ -34,10 +35,16 @@ export default class World {
       this.rocks = new Rocks()
       this.bushes = new Bushes()
       this.flowers = new Flowers()
-      this.dirtMounds = new DirtMounds()
+
       this.fences = new Fences()
       this.fallingPetals = new FallingPetals()
       this.rain = new Rain()
+      this.rainSplashes = new RainSplashes()
+
+      // Add weather controls now that rain exists
+      if (this.experience.debug.active) {
+        this.experience.debug.addWeatherControls(this)
+      }
 
       // Update environment settings after all objects are created
       this.environment.updateSunPosition()
@@ -45,6 +52,9 @@ export default class World {
   }
 
   update() {
+    if (this.environment) {
+      this.environment.update()
+    }
     if (this.fallingPetals) {
       this.fallingPetals.update()
     }
@@ -59,6 +69,9 @@ export default class World {
     }
     if (this.rain) {
       this.rain.update()
+    }
+    if (this.rainSplashes) {
+      this.rainSplashes.update()
     }
   }
 }

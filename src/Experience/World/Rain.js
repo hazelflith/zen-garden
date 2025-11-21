@@ -11,6 +11,7 @@ export default class Rain {
 
     this.count = 3000 // Increased count for better density
     this.enabled = false
+    this.intensity = 0.7 // 0.0 to 1.0, controls all rain effects
 
     this.setGeometry()
     this.setMaterial()
@@ -58,11 +59,8 @@ export default class Rain {
   }
 
   setAudio() {
-    // Create global audio source
-    const listener = new THREE.AudioListener()
-    this.camera.add(listener)
-
-    this.sound = new THREE.Audio(listener)
+    // Use global audio listener from camera
+    this.sound = new THREE.Audio(this.experience.camera.audioListener)
 
     const setBuffer = () => {
       if (this.resources.items.rainSound) {
@@ -105,9 +103,15 @@ export default class Rain {
       console.log('Rain sound not ready yet')
     }
 
-    // Trigger stormy weather
+    // Trigger stormy weather with intensity
     if (this.experience.world.environment) {
-      this.experience.world.environment.setStormy()
+      this.experience.world.environment.setStormy(this.intensity)
+    }
+
+    // Enable rain splashes with intensity
+    if (this.experience.world.rainSplashes) {
+      this.experience.world.rainSplashes.enable()
+      this.experience.world.rainSplashes.setIntensity(this.intensity)
     }
   }
 
@@ -122,15 +126,37 @@ export default class Rain {
     if (this.experience.world.environment) {
       this.experience.world.environment.setSunny()
     }
+
+    // Disable rain splashes
+    if (this.experience.world.rainSplashes) {
+      this.experience.world.rainSplashes.disable()
+    }
   }
 
   update() {
+    // Update visible count based on intensity
+    this.geometry.setDrawRange(0, Math.floor(this.count * this.intensity) * 2)
+
+    // Update volume based on intensity
+    if (this.sound && this.sound.isPlaying) {
+      this.sound.setVolume(this.intensity * 0.5)
+    }
+
     if (!this.enabled) return
 
     const positions = this.geometry.attributes.position.array
     const speed = 0.8
-    const windX = 0.2 // Wind strength X
-    const windZ = 0.1 // Wind strength Z
+
+    // Get wind from environment
+    let windX = 0
+    let windZ = 0
+
+    if (this.experience.world.environment && this.experience.world.environment.wind) {
+      const wind = this.experience.world.environment.wind
+      const angle = wind.direction * Math.PI / 180
+      windX = Math.sin(angle) * wind.strength * 0.5
+      windZ = Math.cos(angle) * wind.strength * 0.5
+    }
 
     // Dynamic range based on camera position
     const range = 20

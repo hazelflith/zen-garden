@@ -60,15 +60,15 @@ export default class Rocks {
         const rand = Math.random()
         let radius
 
-        if (rand < 0.3) // 30% in sand
+        if (rand < 0.1) // 10% in sand
         {
           radius = 1.5 + Math.random() * 1.5 // 1.5 - 3.0
         }
-        else if (rand < 0.7) // 40% in middle grass
+        else if (rand < 0.3) // 20% in middle grass
         {
           radius = 6.2 + Math.random() * 1.6
         }
-        else // 30% in outer grass
+        else // 70% in outer grass
         {
           radius = 10.0 + Math.random() * 4.0
         }

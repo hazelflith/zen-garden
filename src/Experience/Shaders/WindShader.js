@@ -44,15 +44,17 @@ export default class WindShader {
         #include <begin_vertex>
 
         // Calculate world position for wind effect
-        vec3 windWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+        vec3 windWorldPosition;
         
         #ifdef USE_INSTANCING
-          windWorldPosition = (instanceMatrix * vec4(position, 1.0)).xyz;
+          windWorldPosition = (instanceMatrix * vec4(transformed, 1.0)).xyz;
+        #else
+          windWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;
         #endif
 
         // Calculate wind effect
-        // Use world height for intensity, but keep local position for noise consistency if needed
-        float heightFactor = max(0.0, windWorldPosition.y); 
+        // Use local height (transformed.y) for intensity so objects at y=0 still sway if they have height
+        float heightFactor = max(0.0, transformed.y); 
         float windTime = uTime * 2.0;
         
         // Main wind sway

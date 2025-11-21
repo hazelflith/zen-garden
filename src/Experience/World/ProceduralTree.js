@@ -131,7 +131,7 @@ export default class ProceduralTree {
         material.userData.updateWind(
           time,
           new THREE.Vector2(Math.sin(wind.direction * Math.PI / 180), Math.cos(wind.direction * Math.PI / 180)),
-          wind.strength
+          wind.strength * 0.25 // Reduce wind effect to 25% for tree leaves/blossoms only
         )
       }
     })

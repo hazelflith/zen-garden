@@ -48,5 +48,15 @@ export default [
     name: 'rainSound',
     type: 'audio',
     path: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg'
+  },
+  {
+    name: 'ambientSound',
+    type: 'audio',
+    path: 'https://cdn.pixabay.com/audio/2022/03/10/audio_e0990e667b.mp3'
+  },
+  {
+    name: 'cloudTexture',
+    type: 'texture',
+    path: '/textures/cloud.png'
   }
 ]
