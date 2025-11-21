@@ -4,7 +4,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 export default class Camera {
   constructor() {
-    this.experience = new Experience()
+    // Experience is a singleton, just get the existing instance
+    this.experience = window.experience
     this.sizes = this.experience.sizes
     this.scene = this.experience.scene
     this.canvas = this.experience.canvas

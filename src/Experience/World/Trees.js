@@ -21,8 +21,10 @@ export default class Trees {
     this.group.frustumCulled = true // Enable frustum culling
     this.scene.add(this.group)
 
-    const count = 3
+    const count = Math.floor(Math.random() * 4) + 3 // Random 3-6 trees
     const terrain = this.experience.world.terrain
+
+    let innerTreeCount = 0
 
     for (let i = 0; i < count; i++) {
       let x, z
@@ -33,10 +35,17 @@ export default class Trees {
         attempts++
         const angle = Math.random() * Math.PI * 2
 
-        const zone = Math.random() > 0.5 ? 'middle' : 'outer'
+        let zone = Math.random() > 0.5 ? 'middle' : 'outer'
+
+        // Limit inner ring (middle) to max 2 trees
+        if (zone === 'middle' && innerTreeCount >= 2) {
+          zone = 'outer'
+        }
+
         const radius = zone === 'middle'
           ? 6.5 + Math.random() * 1.0 // 6.5 to 7.5
           : 10.0 + Math.random() * 4.0 // > 10
+
 
         x = Math.sin(angle) * radius
         z = Math.cos(angle) * radius
@@ -45,6 +54,9 @@ export default class Trees {
         // Relaxed buffer to 1.25 (Root only check)
         if (Math.abs(x) > 1.25 && Math.abs(z) > 1.25) {
           validPosition = true
+          if (zone === 'middle') {
+            innerTreeCount++
+          }
         }
       }
 
@@ -135,5 +147,18 @@ export default class Trees {
         tree.update(time, wind)
       })
     })
+  }
+
+  getTreePositions() {
+    const positions = []
+    this.items.forEach(item => {
+      // Use the LOD position or the first tree's position
+      if (item.lod) {
+        positions.push(item.lod.position.clone())
+      } else if (item.trees.length > 0) {
+        positions.push(item.trees[0].position.clone())
+      }
+    })
+    return positions
   }
 }

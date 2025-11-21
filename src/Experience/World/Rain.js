@@ -164,14 +164,9 @@ export default class Rain {
     const cameraZ = this.camera.position.z
 
     for (let i = 0; i < this.count; i++) {
-      // Move both vertices down and apply wind
-      positions[i * 6 + 0] += windX // Top x
+      // Move both vertices down only (no wind influence)
       positions[i * 6 + 1] -= speed // Top y
-      positions[i * 6 + 2] += windZ // Top z
-
-      positions[i * 6 + 3] += windX // Bottom x
       positions[i * 6 + 4] -= speed // Bottom y
-      positions[i * 6 + 5] += windZ // Bottom z
 
       // 1. Check Y (falling)
       if (positions[i * 6 + 1] < 0) {
@@ -187,10 +182,10 @@ export default class Rain {
         positions[i * 6 + 1] = y
         positions[i * 6 + 2] = z
 
-        // Reset bottom vertex with wind slant offset
-        positions[i * 6 + 3] = x - windX
+        // Reset bottom vertex - always vertical (no wind slant)
+        positions[i * 6 + 3] = x
         positions[i * 6 + 4] = y - 0.8
-        positions[i * 6 + 5] = z - windZ
+        positions[i * 6 + 5] = z
       }
 
       // 2. Check X (wrapping around camera)

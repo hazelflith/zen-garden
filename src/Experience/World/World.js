@@ -38,6 +38,7 @@ export default class World {
 
       this.fences = new Fences()
       this.fallingPetals = new FallingPetals()
+      this.fallingPetals.setSpawnSources(this.trees.getTreePositions())
       this.rain = new Rain()
       this.rainSplashes = new RainSplashes()
 

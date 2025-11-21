@@ -37,10 +37,7 @@ export default class ProceduralTree {
         metalness: 0.1
       })
 
-      if (this.windShader) {
-        this.windShader.apply(material)
-        this.materials.push(material)
-      }
+      // Wind shader removed for trunk to prevent base sway
 
       const mesh = new THREE.Mesh(mergedGeometry, material)
 

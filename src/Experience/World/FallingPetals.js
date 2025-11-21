@@ -7,10 +7,11 @@ export default class FallingPetals {
     this.scene = this.experience.scene
     this.time = this.experience.time
 
-    this.petalCount = 200
-    this.maxActiveParticles = 200
+    this.petalCount = 300 // Increased by 50%
+    this.maxActiveParticles = 300 // Increased by 50%
     this.petals = []
     this.spawnTimer = 0
+    this.spawnSources = []
 
     this.setGeometry()
     this.setMaterial()
@@ -20,7 +21,8 @@ export default class FallingPetals {
 
   setGeometry() {
     // Small quad for petal
-    this.geometry = new THREE.PlaneGeometry(0.15, 0.2)
+    // Circular petal to match tree blossoms
+    this.geometry = new THREE.CircleGeometry(0.1, 6)
   }
 
   setMaterial() {
@@ -31,6 +33,32 @@ export default class FallingPetals {
       opacity: 0.85,
       roughness: 0.8
     })
+
+    // Inject shader to handle per-instance opacity
+    this.material.onBeforeCompile = (shader) => {
+      shader.vertexShader = `
+        attribute float aOpacity;
+        varying float vOpacity;
+        ${shader.vertexShader}
+      `.replace(
+        '#include <begin_vertex>',
+        `
+        #include <begin_vertex>
+        vOpacity = aOpacity;
+        `
+      )
+
+      shader.fragmentShader = `
+        varying float vOpacity;
+        ${shader.fragmentShader}
+      `.replace(
+        '#include <dithering_fragment>',
+        `
+        #include <dithering_fragment>
+        gl_FragColor.a *= vOpacity;
+        `
+      )
+    }
   }
 
   setMesh() {
@@ -62,9 +90,15 @@ export default class FallingPetals {
         ),
         swayPhase: Math.random() * Math.PI * 2,
         lifetime: 0,
+        groundTime: 0,
+        opacity: 1,
         active: false
       })
     }
+
+    // Add opacity attribute
+    const opacities = new Float32Array(this.petalCount).fill(1)
+    this.geometry.setAttribute('aOpacity', new THREE.InstancedBufferAttribute(opacities, 1))
 
     this.updateMatrices()
   }
@@ -73,14 +107,29 @@ export default class FallingPetals {
     const petal = this.petals[index]
 
     // Spawn near trees (roughly in grass zones)
-    const angle = Math.random() * Math.PI * 2
-    const zone = Math.random() > 0.5 ? 'middle' : 'outer'
-    const radius = zone === 'middle' ? 6.5 + Math.random() * 1.0 : 10.0 + Math.random() * 4.0
+    // Spawn near trees
+    let x = 0, z = 0
+
+    if (this.spawnSources.length > 0) {
+      const sourceIndex = Math.floor(Math.random() * this.spawnSources.length)
+      const sourcePos = this.spawnSources[sourceIndex]
+      const angle = Math.random() * Math.PI * 2
+      const radius = 2.5 + Math.random() * 1.5 // 2.5 to 4.0 radius from tree center
+
+      x = sourcePos.x + Math.sin(angle) * radius
+      z = sourcePos.z + Math.cos(angle) * radius
+    } else {
+      // Fallback if no sources set
+      const angle = Math.random() * Math.PI * 2
+      const radius = 5 + Math.random() * 5
+      x = Math.sin(angle) * radius
+      z = Math.cos(angle) * radius
+    }
 
     petal.position.set(
-      Math.sin(angle) * radius,
+      x,
       5 + Math.random() * 2, // Spawn from tree canopy height
-      Math.cos(angle) * radius
+      z
     )
 
     petal.velocity.set(
@@ -91,6 +140,8 @@ export default class FallingPetals {
 
     petal.swayPhase = Math.random() * Math.PI * 2
     petal.lifetime = 0
+    petal.groundTime = 0
+    petal.opacity = 1
     petal.active = true
   }
 
@@ -108,6 +159,15 @@ export default class FallingPetals {
     }
 
     this.mesh.instanceMatrix.needsUpdate = true
+
+    // Update opacity attribute
+    if (this.geometry.attributes.aOpacity) {
+      const opacities = this.geometry.attributes.aOpacity.array
+      for (let i = 0; i < this.petalCount; i++) {
+        opacities[i] = this.petals[i].opacity
+      }
+      this.geometry.attributes.aOpacity.needsUpdate = true
+    }
   }
 
   update() {
@@ -180,7 +240,24 @@ export default class FallingPetals {
       petal.rotation.z += petal.rotationSpeed.z * deltaTime
 
       // Reset if hit ground or too old
-      if (petal.position.y < 0 || petal.lifetime > 20) {
+      if (petal.position.y <= 0) {
+        petal.position.y = 0
+        petal.velocity.set(0, 0, 0)
+        petal.rotationSpeed.set(0, 0, 0)
+
+        // Ground behavior
+        petal.groundTime += deltaTime
+
+        if (petal.groundTime > 2.0) {
+          // Fade out over 1s
+          petal.opacity = Math.max(0, 1 - (petal.groundTime - 2.0))
+
+          if (petal.opacity <= 0) {
+            petal.active = false
+            petal.position.y = -10
+          }
+        }
+      } else if (petal.lifetime > 20) {
         petal.active = false
         petal.position.y = -10 // Move below ground
       }
@@ -202,5 +279,9 @@ export default class FallingPetals {
       }
     }
     this.maxActiveParticles = count
+  }
+
+  setSpawnSources(positions) {
+    this.spawnSources = positions
   }
 }

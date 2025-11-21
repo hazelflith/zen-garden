@@ -20,11 +20,21 @@ export default class Environment {
     }
 
     // Wind settings
-    this.wind = {
+    // Wind settings (Base values)
+    this.windSettings = {
       direction: 45,
-      strength: 0.2,
+      strength: 1,
       gustStrength: 0.5,
       gustSpeed: 1.0
+    }
+
+    // Actual wind (Calculated)
+    this.wind = {
+      direction: 45,
+      strength: 1,
+      gustStrength: 0.5,
+      gustSpeed: 1.0,
+      currentGust: 0
     }
 
     // Setup Sun Light
@@ -70,10 +80,10 @@ export default class Environment {
 
       // Wind controls
       const windFolder = debugFolder.addFolder('Wind')
-      windFolder.add(this.wind, 'direction').min(0).max(360).step(1).name('Direction (deg)')
-      windFolder.add(this.wind, 'strength').min(0).max(5).step(0.1).name('Strength')
-      windFolder.add(this.wind, 'gustStrength').min(0).max(2).step(0.1).name('Gust Strength')
-      windFolder.add(this.wind, 'gustSpeed').min(0).max(5).step(0.1).name('Gust Speed')
+      windFolder.add(this.windSettings, 'direction').min(0).max(360).step(1).name('Direction (deg)')
+      windFolder.add(this.windSettings, 'strength').min(0).max(5).step(0.1).name('Strength')
+      windFolder.add(this.windSettings, 'gustStrength').min(0).max(2).step(0.1).name('Gust Strength')
+      windFolder.add(this.windSettings, 'gustSpeed').min(0).max(5).step(0.1).name('Gust Speed')
     }
 
     this.updateSunPosition()
@@ -119,6 +129,16 @@ export default class Environment {
       this.weatherFactor += (this.weatherTarget - this.weatherFactor) * speed
       this.updateSunPosition() // Force update to apply weather
     }
+
+    // Update Wind
+    // Copy base settings
+    this.wind.direction = this.windSettings.direction
+    this.wind.gustSpeed = this.windSettings.gustSpeed
+    this.wind.gustStrength = this.windSettings.gustStrength
+
+    // Apply weather influence to strength
+    // Increase wind strength by 2x the weather factor
+    this.wind.strength = this.windSettings.strength + (this.weatherFactor * 2.0)
   }
 
   setMoonLight() {
