@@ -2,16 +2,18 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 export default class ProceduralTree {
-  constructor(scene, position, scale, rotation, windShader) {
+  constructor(scene, position, scale, rotation, windShader, detailMultiplier = 1.0) {
     this.scene = scene
     this.position = position
     this.scale = scale
     this.rotation = rotation
     this.windShader = windShader
+    this.detailMultiplier = detailMultiplier // Controls geometry complexity
 
     this.geometries = []
     this.blossomMatrices = []
     this.materials = []
+    this.group = new THREE.Group() // Exposed for LOD system
 
     this.generate()
   }
@@ -48,17 +50,20 @@ export default class ProceduralTree {
       mesh.castShadow = true
       mesh.receiveShadow = true
 
-      this.scene.add(mesh)
+      this.group.add(mesh)
     }
 
     // Blossoms
     if (this.blossomMatrices.length > 0) {
-      const blossomGeometry = new THREE.PlaneGeometry(0.5, 0.5)
+      // Use circular geometry for more natural-looking blossoms
+      const blossomGeometry = new THREE.CircleGeometry(0.3, 6)
       const blossomMaterial = new THREE.MeshStandardMaterial({
         color: '#ffb7c5',
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.9
+        opacity: 0.95,
+        roughness: 0.7,
+        metalness: 0.1
       })
 
       blossomMaterial.defines = { USE_WIND_INFLUENCE: '' }
@@ -110,10 +115,14 @@ export default class ProceduralTree {
       mesh.position.copy(this.position)
       mesh.scale.set(this.scale, this.scale, this.scale)
       mesh.rotation.y = this.rotation
-      mesh.castShadow = true
+      mesh.castShadow = true // Re-enabled for visual quality
+      mesh.receiveShadow = true
 
-      this.scene.add(mesh)
+      this.group.add(mesh)
     }
+
+    // Add group to scene
+    this.scene.add(this.group)
   }
 
   update(time, wind) {
@@ -129,8 +138,9 @@ export default class ProceduralTree {
   }
 
   branch(start, direction, length, radius, depth) {
-    // Create branch geometry
-    const geometry = new THREE.CylinderGeometry(radius * 0.7, radius, length, 8)
+    // Create branch geometry with LOD-aware segment count
+    const segments = Math.max(4, Math.floor(8 * this.detailMultiplier))
+    const geometry = new THREE.CylinderGeometry(radius * 0.7, radius, length, segments)
     geometry.translate(0, length / 2, 0)
 
     // Orient geometry
@@ -146,7 +156,8 @@ export default class ProceduralTree {
 
     // Recursion
     if (depth < 4) {
-      const branchCount = 3 + Math.floor(Math.random() * 3) // Increased branching
+      const baseBranchCount = 3 + Math.floor(Math.random() * 3)
+      const branchCount = Math.max(2, Math.floor(baseBranchCount * this.detailMultiplier))
 
       for (let i = 0; i < branchCount; i++) {
         // Random direction deviation (30% wider)
@@ -165,12 +176,16 @@ export default class ProceduralTree {
 
       // Add some blossoms to inner branches (depth 2 and 3) for volume
       if (depth > 1) {
-        this.addBlossoms(end, 15, 2.0)
+        // Increased density for fuller look
+        const blossomCount = Math.floor(40 * this.detailMultiplier)
+        this.addBlossoms(end, blossomCount, 2.5)
       }
     }
     else {
       // Add dense blossoms at tips
-      this.addBlossoms(end, 60, 3.0)
+      // Significantly increased count for "max quality" request
+      const blossomCount = Math.floor(150 * this.detailMultiplier)
+      this.addBlossoms(end, blossomCount, 4.0)
     }
   }
 
@@ -192,7 +207,8 @@ export default class ProceduralTree {
         Math.random() * Math.PI
       )
 
-      const scale = new THREE.Vector3(1, 1, 1).multiplyScalar(0.8 + Math.random() * 0.8)
+      // More size variation for natural look
+      const scale = new THREE.Vector3(1, 1, 1).multiplyScalar(0.6 + Math.random() * 1.0)
 
       matrix.compose(blossomPos, new THREE.Quaternion().setFromEuler(rotation), scale)
       this.blossomMatrices.push(matrix)

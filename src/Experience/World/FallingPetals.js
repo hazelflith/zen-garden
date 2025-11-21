@@ -8,6 +8,7 @@ export default class FallingPetals {
     this.time = this.experience.time
 
     this.petalCount = 200
+    this.maxActiveParticles = 200
     this.petals = []
     this.spawnTimer = 0
 
@@ -34,6 +35,9 @@ export default class FallingPetals {
 
   setMesh() {
     this.mesh = new THREE.InstancedMesh(this.geometry, this.material, this.petalCount)
+    this.mesh.castShadow = false // Disabled for performance
+    this.mesh.receiveShadow = false // Disabled for performance
+    this.mesh.frustumCulled = true // Enable frustum culling
     this.scene.add(this.mesh)
   }
 
@@ -118,7 +122,7 @@ export default class FallingPetals {
       environment.wind.currentGust = Math.sin(this.time.elapsed * 0.001 * wind.gustSpeed) * wind.gustStrength
     }
 
-    // Calculate wind velocity
+    // Calculate wind velocity once
     const windAngle = (wind.direction * Math.PI) / 180
     const totalWindStrength = wind.strength + wind.currentGust
     const windVelocity = {
@@ -129,12 +133,20 @@ export default class FallingPetals {
     // Spawn new petals periodically
     this.spawnTimer += deltaTime
     if (this.spawnTimer > 0.1) { // Spawn every 0.1 seconds
-      const inactivePetal = this.petals.findIndex(p => !p.active)
-      if (inactivePetal !== -1) {
-        this.spawnPetal(inactivePetal)
+      // Count active petals
+      const activeCount = this.petals.filter(p => p.active).length
+
+      // Only spawn if under the limit
+      if (activeCount < this.maxActiveParticles) {
+        const inactivePetal = this.petals.findIndex(p => !p.active)
+        if (inactivePetal !== -1) {
+          this.spawnPetal(inactivePetal)
+        }
       }
       this.spawnTimer = 0
     }
+
+    let needsUpdate = false
 
     // Update active petals
     for (let i = 0; i < this.petalCount; i++) {
@@ -142,6 +154,7 @@ export default class FallingPetals {
 
       if (!petal.active) continue
 
+      needsUpdate = true
       petal.lifetime += deltaTime
 
       // Gravity
@@ -173,6 +186,21 @@ export default class FallingPetals {
       }
     }
 
-    this.updateMatrices()
+    // Only update matrices if petals changed
+    if (needsUpdate) {
+      this.updateMatrices()
+    }
+  }
+
+  setParticleCount(count) {
+    // Limit the active particle count
+    // Deactivate particles beyond the new count
+    for (let i = count; i < this.petalCount; i++) {
+      if (this.petals[i].active) {
+        this.petals[i].active = false
+        this.petals[i].position.y = -10
+      }
+    }
+    this.maxActiveParticles = count
   }
 }

@@ -7,6 +7,7 @@ export default class Lantern {
     this.scene = this.experience.scene
 
     this.group = new THREE.Group()
+    this.group.frustumCulled = true // Enable frustum culling
     this.scene.add(this.group)
 
     this.material = new THREE.MeshStandardMaterial({ color: '#8c8c8c', roughness: 0.7 })

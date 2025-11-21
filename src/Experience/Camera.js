@@ -14,7 +14,8 @@ export default class Camera {
   }
 
   setInstance() {
-    this.instance = new THREE.PerspectiveCamera(35, this.sizes.width / this.sizes.height, 0.1, 300)
+    // Optimized far plane for better frustum culling (reduced from 300 to 100)
+    this.instance = new THREE.PerspectiveCamera(35, this.sizes.width / this.sizes.height, 0.1, 100)
     this.instance.position.set(10, 12, 10)
     this.scene.add(this.instance)
   }

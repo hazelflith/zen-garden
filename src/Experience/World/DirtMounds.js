@@ -61,6 +61,7 @@ export default class DirtMounds {
     this.mesh = new THREE.InstancedMesh(this.geometry, this.material, count)
     this.mesh.castShadow = true
     this.mesh.receiveShadow = true
+    this.mesh.frustumCulled = true // Enable frustum culling
 
     const terrain = this.experience.world.terrain
 

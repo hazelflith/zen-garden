@@ -26,15 +26,10 @@ export default class Fences {
 
   setMesh() {
     const radii = [4.5, 6.0, 8.0, 9.5]
-    const instancesPerRing = 80
-    const totalInstances = radii.length * instancesPerRing
-
-    this.mesh = new THREE.InstancedMesh(this.geometry, this.material, totalInstances)
-    this.mesh.castShadow = true
-    this.mesh.receiveShadow = true
-
     const terrain = this.experience.world.terrain
-    let instanceIndex = 0
+
+    // Pre-calculate actual instance count
+    const matrices = []
     const dummy = new THREE.Object3D()
 
     radii.forEach(radius => {
@@ -47,8 +42,6 @@ export default class Fences {
         const z = Math.cos(angle) * radius
 
         // Check for radial path gaps
-        // Path width is approx 1.2 in Terrain.js
-        // We add a bit of buffer (1.4) to clear the path comfortably
         if (Math.abs(x) < 1.4 || Math.abs(z) < 1.4) {
           continue
         }
@@ -60,20 +53,27 @@ export default class Fences {
         }
 
         dummy.position.set(x, y, z)
-        dummy.rotation.y = angle // Face outward/inward
-
-        // Slight random variation
+        dummy.rotation.y = angle
         dummy.rotation.z = (Math.random() - 0.5) * 0.1
         dummy.rotation.x = (Math.random() - 0.5) * 0.1
-
         dummy.scale.setScalar(0.8 + Math.random() * 0.4)
 
         dummy.updateMatrix()
-        this.mesh.setMatrixAt(instanceIndex++, dummy.matrix)
+        matrices.push(dummy.matrix.clone())
       }
     })
 
-    this.mesh.count = instanceIndex // Update actual count used
+    // Create mesh with exact count
+    this.mesh = new THREE.InstancedMesh(this.geometry, this.material, matrices.length)
+    this.mesh.castShadow = true
+    this.mesh.receiveShadow = true
+    this.mesh.frustumCulled = true
+
+    // Set matrices
+    matrices.forEach((matrix, i) => {
+      this.mesh.setMatrixAt(i, matrix)
+    })
+
     this.scene.add(this.mesh)
   }
 }

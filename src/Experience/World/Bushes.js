@@ -142,16 +142,19 @@ export default class Bushes {
     }
 
     // Create InstancedMesh for each part
+    this.instancedMeshes = []
     this.parts.forEach((part) => {
       const mesh = new THREE.InstancedMesh(part.geometry, part.material, bushCount)
-      mesh.castShadow = true
+      mesh.castShadow = false // Disabled for performance
       mesh.receiveShadow = true
+      mesh.frustumCulled = true // Enable frustum culling
 
       for (let i = 0; i < bushCount; i++) {
         mesh.setMatrixAt(i, matrices[i])
       }
 
       this.scene.add(mesh)
+      this.instancedMeshes.push(mesh)
     })
   }
 

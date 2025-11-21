@@ -18,6 +18,7 @@ export default class Trees {
 
   setTrees() {
     this.group = new THREE.Group()
+    this.group.frustumCulled = true // Enable frustum culling
     this.scene.add(this.group)
 
     const count = 3
@@ -64,15 +65,46 @@ export default class Trees {
         y = terrain.getHeightAt(x, z)
       }
 
-      const tree = new ProceduralTree(
-        this.group,
-        new THREE.Vector3(x, y, z),
-        0.27 + Math.random() * 0.18, // Reduced by 10%
+      // Create LOD object for this tree
+      const lod = new THREE.LOD()
+      lod.position.set(x, y, z)
+
+      // High detail tree (0-15 units)
+      const treeHigh = new ProceduralTree(
+        lod,
+        new THREE.Vector3(0, 0, 0),
+        0.27 + Math.random() * 0.18,
         Math.random() * Math.PI * 2,
         this.windShader
       )
 
-      this.items.push(tree)
+      // Medium detail tree (15-30 units) - 60% segments
+      const treeMedium = new ProceduralTree(
+        lod,
+        new THREE.Vector3(0, 0, 0),
+        0.27 + Math.random() * 0.18,
+        Math.random() * Math.PI * 2,
+        this.windShader,
+        0.6 // Reduce detail to 60%
+      )
+
+      // Low detail tree (30+ units) - 30% segments
+      const treeLow = new ProceduralTree(
+        lod,
+        new THREE.Vector3(0, 0, 0),
+        0.27 + Math.random() * 0.18,
+        Math.random() * Math.PI * 2,
+        this.windShader,
+        0.3 // Reduce detail to 30%
+      )
+
+      // Set LOD distances
+      lod.addLevel(treeHigh.group || new THREE.Group(), 0)    // 0-15 units
+      lod.addLevel(treeMedium.group || new THREE.Group(), 15) // 15-30 units
+      lod.addLevel(treeLow.group || new THREE.Group(), 30)    // 30+ units
+
+      this.group.add(lod)
+      this.items.push({ lod, trees: [treeHigh, treeMedium, treeLow] })
     }
   }
 
@@ -80,8 +112,11 @@ export default class Trees {
     const wind = this.experience.world.environment.wind
     const time = this.time.elapsed * 0.001
 
-    this.items.forEach(tree => {
-      tree.update(time, wind)
+    this.items.forEach(item => {
+      // Update all tree detail levels (only the visible one will be rendered)
+      item.trees.forEach(tree => {
+        tree.update(time, wind)
+      })
     })
   }
 }

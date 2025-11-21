@@ -22,7 +22,9 @@ export default class Renderer {
   setInstance() {
     this.instance = new THREE.WebGLRenderer({
       canvas: this.canvas,
-      antialias: true
+      antialias: true,
+      powerPreference: 'high-performance',
+      stencil: false // Disable stencil buffer for better performance
     })
     this.instance.physicallyCorrectLights = true
     this.instance.outputColorSpace = THREE.SRGBColorSpace
@@ -30,9 +32,13 @@ export default class Renderer {
     this.instance.toneMappingExposure = 1.0
     this.instance.shadowMap.enabled = true
     this.instance.shadowMap.type = THREE.PCFSoftShadowMap
+    this.instance.shadowMap.autoUpdate = false // Manual shadow update for performance
     this.instance.setClearColor('#ebe5d0')
     this.instance.setSize(this.sizes.width, this.sizes.height)
     this.instance.setPixelRatio(Math.min(this.sizes.pixelRatio, 2))
+
+    // Enable frustum culling (enabled by default, but explicitly set)
+    this.instance.frustumCulled = true
 
     // Debug
     if (this.debug.active) {
@@ -99,5 +105,10 @@ export default class Renderer {
 
   update() {
     this.effectComposer.render()
+  }
+
+  updateShadows() {
+    // Manually update shadow map when scene changes
+    this.instance.shadowMap.needsUpdate = true
   }
 }

@@ -171,16 +171,19 @@ export default class Flowers {
       }
 
       // Create InstancedMesh for each part using the SAME matrices
+      flowerType.instancedMeshes = []
       flowerType.parts.forEach((part) => {
         const mesh = new THREE.InstancedMesh(part.geometry, part.material, countPerType)
-        mesh.castShadow = true
+        mesh.castShadow = false // Disabled for performance
         mesh.receiveShadow = true
+        mesh.frustumCulled = true // Enable frustum culling
 
         for (let i = 0; i < countPerType; i++) {
           mesh.setMatrixAt(i, matrices[i])
         }
 
         this.scene.add(mesh)
+        flowerType.instancedMeshes.push(mesh)
       })
     })
   }

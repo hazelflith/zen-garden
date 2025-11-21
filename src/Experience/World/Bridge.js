@@ -7,6 +7,7 @@ export default class Bridge {
     this.scene = this.experience.scene
 
     this.group = new THREE.Group()
+    this.group.frustumCulled = true // Enable frustum culling
     this.scene.add(this.group)
 
     this.material = new THREE.MeshStandardMaterial({ color: '#8b4513', roughness: 0.8 })

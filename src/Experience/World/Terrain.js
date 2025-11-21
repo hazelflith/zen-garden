@@ -235,6 +235,7 @@ export default class Terrain {
   setMesh() {
     this.mesh = new THREE.Mesh(this.geometry, this.material)
     this.mesh.receiveShadow = true
+    this.mesh.frustumCulled = true // Enable frustum culling
     this.scene.add(this.mesh)
   }
 }

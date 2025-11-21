@@ -31,6 +31,7 @@ export default class Water {
     this.mesh = new THREE.Mesh(this.geometry, this.material)
     this.mesh.rotation.x = - Math.PI * 0.5
     this.mesh.position.y = 0.02 // Slightly above terrain
+    this.mesh.frustumCulled = true // Enable frustum culling
 
     this.scene.add(this.mesh)
   }

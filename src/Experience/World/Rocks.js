@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import Experience from '../Experience.js'
 
 export default class Rocks {
@@ -43,8 +44,8 @@ export default class Rocks {
     const count = 20
     const terrain = this.experience.world.terrain
 
-    // Create individual meshes for each rock (allows different geometries)
-    this.rocks = []
+    // Group geometries by material for merging
+    const materialGroups = new Map()
 
     for (let i = 0; i < count; i++) {
       let x, z
@@ -91,36 +92,60 @@ export default class Rocks {
       const rockIndex = Math.floor(Math.random() * this.rockVariations.length)
       const rockData = this.rockVariations[rockIndex]
 
-      // Create mesh
-      const rock = new THREE.Mesh(rockData.geometry, rockData.material)
-      rock.castShadow = true
-      rock.receiveShadow = true
+      // Clone geometry for transformation
+      const geometry = rockData.geometry.clone()
 
       // Random scale (adjusted to be much smaller)
       const scaleUniform = (0.3 + Math.random() * 0.4) * 0.02
-      rock.scale.set(scaleUniform, scaleUniform, scaleUniform)
 
       // Random rotation
-      rock.rotation.set(
+      const rotation = new THREE.Euler(
         Math.random() * Math.PI,
         Math.random() * Math.PI,
         Math.random() * Math.PI
       )
 
+      // Compute bounding sphere for positioning
+      geometry.computeBoundingSphere()
+      const radius = geometry.boundingSphere.radius * scaleUniform
+
       // Position at surface level
-      // Since geometry is centered, the pivot is at the center of the rock.
-      // We want the bottom of the rock to be slightly below the terrain.
-      // We can approximate the radius/height from the bounding sphere or box.
-      rock.geometry.computeBoundingSphere()
-      const radius = rock.geometry.boundingSphere.radius * scaleUniform
+      const position = new THREE.Vector3(x, y + radius * 0.2, z)
 
-      // Place center at y + radius * 0.5 (so it's mostly above ground but sunk a bit)
-      // Actually, if we want it "on surface", center should be at y + radius?
-      // Let's sink it a bit: y + radius * 0.2
-      rock.position.set(x, y + radius * 0.2, z)
+      // Apply transformations to geometry
+      const matrix = new THREE.Matrix4()
+      matrix.compose(
+        position,
+        new THREE.Quaternion().setFromEuler(rotation),
+        new THREE.Vector3(scaleUniform, scaleUniform, scaleUniform)
+      )
+      geometry.applyMatrix4(matrix)
 
-      this.scene.add(rock)
-      this.rocks.push(rock)
+      // Group by material
+      const materialUuid = rockData.material.uuid
+      if (!materialGroups.has(materialUuid)) {
+        materialGroups.set(materialUuid, {
+          material: rockData.material,
+          geometries: []
+        })
+      }
+      materialGroups.get(materialUuid).geometries.push(geometry)
     }
+
+    // Merge geometries for each material group
+    materialGroups.forEach((group) => {
+      if (group.geometries.length > 0) {
+        const mergedGeometry = mergeGeometries(group.geometries)
+
+        if (mergedGeometry) {
+          const mesh = new THREE.Mesh(mergedGeometry, group.material)
+          mesh.castShadow = true
+          mesh.receiveShadow = true
+          mesh.frustumCulled = true
+
+          this.scene.add(mesh)
+        }
+      }
+    })
   }
 }
