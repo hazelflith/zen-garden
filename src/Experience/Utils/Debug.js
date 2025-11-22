@@ -85,6 +85,10 @@ export default class Debug {
         .name('Rain Intensity')
         .onChange((value) => {
           if (world.rain.enabled) {
+            // Stop automatic sequence if user interacts
+            if (world.rain.isSequenceActive) {
+              world.rain.stopSequence()
+            }
             world.environment.setStormy(value)
             if (world.rainSplashes) {
               world.rainSplashes.setIntensity(value)

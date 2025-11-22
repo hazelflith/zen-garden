@@ -8,8 +8,9 @@ export default class Environment {
     this.resources = this.experience.resources
     this.debug = this.experience.debug
 
-    // Time of day (0-24 hours)
-    this.timeOfDay = 17 // 5 PM by default
+    // Time of Day
+    this.timeOfDay = 18 // 6 PM by default
+    this.isTimePaused = false
 
     // Day lighting settings (configurable)
     this.dayLighting = {
@@ -25,10 +26,12 @@ export default class Environment {
       ambientIntensity: 0.01,
       moonIntensity: 0.2,
       fogDensityMultiplier: 1,
-      fogColor: '#3b3446'
+      fogColor: '#181618',
+      skyboxColor: '#a08d99',
+      overlayOpacity: 0.0,
+      overlayColor: '#000000'
     }
 
-    // Wind settings
     // Wind settings (Base values)
     this.windSettings = {
       direction: 45,
@@ -76,7 +79,9 @@ export default class Environment {
 
       debugFolder.add(this, 'timeOfDay').min(0).max(24).step(0.1).name('Time of Day (h)').onChange(() => {
         this.updateSunPosition()
-      })
+      }).listen()
+
+      debugFolder.add(this, 'isTimePaused').name('Pause Time')
 
       const dayFolder = debugFolder.addFolder('Day Lighting')
       dayFolder.add(this.dayLighting, 'sunIntensity').min(0).max(10).step(0.1).name('Sun Intensity').onChange(() => this.updateSunPosition())
@@ -94,6 +99,9 @@ export default class Environment {
       nightFolder.add(this.nightLighting, 'moonIntensity').min(0).max(2).step(0.1).name('Moon Intensity').onChange(() => this.updateSunPosition())
       nightFolder.add(this.nightLighting, 'fogDensityMultiplier').min(0).max(1).step(0.05).name('Fog Density Mult').onChange(() => this.updateSunPosition())
       nightFolder.addColor(this.nightLighting, 'fogColor').name('Fog Color').onChange(() => this.updateSunPosition())
+      nightFolder.addColor(this.nightLighting, 'skyboxColor').name('Skybox Tint').onChange(() => this.updateSunPosition())
+      nightFolder.add(this.nightLighting, 'overlayOpacity').min(0).max(1).step(0.01).name('Overlay Opacity').onChange(() => this.updateSunPosition())
+      nightFolder.addColor(this.nightLighting, 'overlayColor').name('Overlay Color').onChange(() => this.updateSunPosition())
 
       // Wind controls
       const windFolder = debugFolder.addFolder('Wind')
@@ -108,8 +116,30 @@ export default class Environment {
   }
 
   setAudio() {
+    // Ambience sound
     this.sound = new THREE.Audio(this.experience.camera.audioListener)
 
+    // Background music
+    this.bgMusic = new THREE.Audio(this.experience.camera.audioListener)
+
+    const resumeContext = () => {
+      const context = this.experience.camera.audioListener.context
+      if (context.state === 'suspended') {
+        context.resume().then(() => {
+          console.log('Audio context resumed')
+        })
+      }
+    }
+
+    // Try to resume immediately
+    resumeContext()
+
+    // Add listeners for first interaction
+    window.addEventListener('click', resumeContext, { once: true })
+    window.addEventListener('keydown', resumeContext, { once: true })
+    window.addEventListener('touchstart', resumeContext, { once: true })
+
+    // Setup ambience
     const setBuffer = () => {
       if (this.resources.items.ambientSound) {
         this.sound.setBuffer(this.resources.items.ambientSound)
@@ -119,11 +149,30 @@ export default class Environment {
       }
     }
 
+    // Setup background music
+    const setBgMusicBuffer = () => {
+      if (this.resources.items.backgroundMusic) {
+        this.bgMusic.setBuffer(this.resources.items.backgroundMusic)
+        this.bgMusic.setLoop(true)
+        this.bgMusic.setVolume(0.75) // 75% volume
+        this.bgMusic.play()
+        console.log('Background music started at 75% volume')
+      }
+    }
+
     if (this.resources.items.ambientSound) {
       setBuffer()
     } else {
       this.resources.on('ready', () => {
         setBuffer()
+      })
+    }
+
+    if (this.resources.items.backgroundMusic) {
+      setBgMusicBuffer()
+    } else {
+      this.resources.on('ready', () => {
+        setBgMusicBuffer()
       })
     }
   }
@@ -137,6 +186,20 @@ export default class Environment {
   }
 
   update() {
+    // Update Time of Day
+    if (!this.isTimePaused) {
+      const delta = this.experience.time.delta
+      // 1 real second = 2 in-game minutes
+      // 2 in-game minutes = 2/60 hours
+      this.timeOfDay += (delta / 1000) * (2 / 60)
+
+      if (this.timeOfDay >= 24) {
+        this.timeOfDay = 0
+      }
+
+      this.updateSunPosition()
+    }
+
     // Smoothly transition weather factor
     if (this.weatherFactor === undefined) this.weatherFactor = 0
     if (this.weatherTarget === undefined) this.weatherTarget = 0
@@ -196,20 +259,21 @@ export default class Environment {
     this.moonLight.position.set(-horizontalDist, Math.max(1, -Math.sin(angle) * 15), 5)
 
     // Define keyframes for lighting parameters
-    // Format: [hour, sunIntensity, sunColor, ambientIntensity, ambientColor, moonIntensity, envIntensity, bgIntensity, overlayColor, overlayOpacity, fogDensity, fogColor]
+    // Added nightMix: 0 = Day, 1 = Night
     const fogBase = this.dayLighting.fogDensity
     const nightFogCol = parseInt(this.nightLighting.fogColor.replace('#', '0x'))
     const dayFogCol = parseInt(this.dayLighting.fogColor.replace('#', '0x'))
+
     const keyframes = [
-      { hour: 0, sunInt: 0, sunCol: 0xfff5e6, ambInt: this.nightLighting.ambientIntensity, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol },
-      { hour: 4, sunInt: 0, sunCol: 0xffa366, ambInt: this.nightLighting.ambientIntensity, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol },
-      { hour: 6, sunInt: 0.5, sunCol: 0xffa366, ambInt: 0.4, ambCol: 0xd4a574, moonInt: 0.3, envInt: 0.0, bgInt: 0.4, ovCol: 0xff8844, ovOp: 0.5, fogDens: fogBase * 0.5, fogCol: 0xff8844 },
-      { hour: 8, sunInt: this.dayLighting.sunIntensity * 0.8, sunCol: 0xfff0d9, ambInt: this.dayLighting.ambientIntensity * 0.8, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity * 0.8, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: dayFogCol },
-      { hour: 12, sunInt: this.dayLighting.sunIntensity, sunCol: 0xfff5e6, ambInt: this.dayLighting.ambientIntensity, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: dayFogCol },
-      { hour: 16, sunInt: this.dayLighting.sunIntensity * 0.8, sunCol: 0xfff0d9, ambInt: this.dayLighting.ambientIntensity * 0.8, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity * 0.8, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: dayFogCol },
-      { hour: 18, sunInt: 0.5, sunCol: 0xffa366, ambInt: 0.4, ambCol: 0xd4a574, moonInt: 0.3, envInt: 0.0, bgInt: 0.4, ovCol: 0xff8844, ovOp: 0.5, fogDens: fogBase * 0.5, fogCol: 0xff8844 },
-      { hour: 20, sunInt: 0, sunCol: 0xffa366, ambInt: this.nightLighting.ambientIntensity, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol },
-      { hour: 24, sunInt: 0, sunCol: 0xfff5e6, ambInt: this.nightLighting.ambientIntensity, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.0, bgInt: 0.01, ovCol: 0x000000, ovOp: 0.85, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol }
+      { hour: 0, sunInt: 0, sunCol: 0xfff5e6, ambInt: 0.1, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.2, bgInt: 1.0, ovCol: 0x000000, ovOp: 0.0, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol, nightMix: 1.0 },
+      { hour: 4, sunInt: 0, sunCol: 0xffa366, ambInt: 0.1, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.2, bgInt: 1.0, ovCol: 0x000000, ovOp: 0.0, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol, nightMix: 1.0 },
+      { hour: 6, sunInt: 0.5, sunCol: 0xffa366, ambInt: 0.4, ambCol: 0xd4a574, moonInt: 0.3, envInt: 0.5, bgInt: 0.4, ovCol: 0xff8844, ovOp: 0.5, fogDens: fogBase * 0.5, fogCol: 0xff8844, nightMix: 0.5 },
+      { hour: 8, sunInt: this.dayLighting.sunIntensity * 0.8, sunCol: 0xfff0d9, ambInt: this.dayLighting.ambientIntensity * 0.8, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity * 0.8, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: dayFogCol, nightMix: 0.0 },
+      { hour: 12, sunInt: this.dayLighting.sunIntensity, sunCol: 0xfff5e6, ambInt: this.dayLighting.ambientIntensity, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: dayFogCol, nightMix: 0.0 },
+      { hour: 16, sunInt: this.dayLighting.sunIntensity * 0.8, sunCol: 0xfff0d9, ambInt: this.dayLighting.ambientIntensity * 0.8, ambCol: 0xd4c4a8, moonInt: 0.0, envInt: this.dayLighting.envMapIntensity * 0.8, bgInt: 1.0, ovCol: 0xffffff, ovOp: 0.0, fogDens: fogBase, fogCol: dayFogCol, nightMix: 0.0 },
+      { hour: 18, sunInt: 0.5, sunCol: 0xffa366, ambInt: 0.4, ambCol: 0xd4a574, moonInt: 0.3, envInt: 0.5, bgInt: 0.4, ovCol: 0xff8844, ovOp: 0.5, fogDens: fogBase * 0.5, fogCol: 0xff8844, nightMix: 0.5 },
+      { hour: 20, sunInt: 0, sunCol: 0xffa366, ambInt: 0.1, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.2, bgInt: 1.0, ovCol: 0x000000, ovOp: 0.0, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol, nightMix: 1.0 },
+      { hour: 24, sunInt: 0, sunCol: 0xfff5e6, ambInt: 0.1, ambCol: 0x4a5f7f, moonInt: this.nightLighting.moonIntensity, envInt: 0.2, bgInt: 1.0, ovCol: 0x000000, ovOp: 0.0, fogDens: fogBase * this.nightLighting.fogDensityMultiplier, fogCol: nightFogCol, nightMix: 1.0 }
     ]
 
     // Find current keyframes
@@ -245,22 +309,22 @@ export default class Environment {
     let fogDens = lerp(prevKey.fogDens, nextKey.fogDens, progress)
     let fogCol = lerpColor(prevKey.fogCol, nextKey.fogCol, progress)
     let envInt = lerp(prevKey.envInt, nextKey.envInt, progress)
+    let nightMix = lerp(prevKey.nightMix, nextKey.nightMix, progress)
 
-    // Apply Weather Blending - reduces current lighting rather than forcing fixed values
+    // Apply Weather Blending
     if (this.weatherFactor > 0) {
-      // Rain reduces sun/ambient intensity and adds gray tint while preserving time of day
-      const rainSunReduction = 0.3 // Reduce to 30% of current
-      const rainAmbReduction = 0.5 // Reduce to 50% of current
-      const rainFogIncrease = 1.8 // Increase fog density
+      const rainSunReduction = 0.3
+      const rainAmbReduction = 0.5
+      const rainFogIncrease = 1.8
       const rainyColor = new THREE.Color('#667799')
-      const rainyFogCol = new THREE.Color('#6a6a78')
+      const rainyFogCol = new THREE.Color('#222233')
 
       sunInt = lerp(sunInt, sunInt * rainSunReduction, this.weatherFactor)
-      sunCol.lerp(rainyColor, this.weatherFactor * 0.3) // Slight color shift
+      sunCol.lerp(rainyColor, this.weatherFactor * 0.3)
       ambInt = lerp(ambInt, ambInt * rainAmbReduction, this.weatherFactor)
-      ambCol.lerp(rainyColor, this.weatherFactor * 0.2) // Slight color shift
+      ambCol.lerp(rainyColor, this.weatherFactor * 0.2)
       fogDens = lerp(fogDens, fogDens * rainFogIncrease, this.weatherFactor)
-      fogCol.lerp(rainyFogCol, this.weatherFactor * 0.4) // Partial gray tint
+      fogCol.lerp(rainyFogCol, this.weatherFactor * 0.4)
       envInt = lerp(envInt, envInt * 0.5, this.weatherFactor)
     }
 
@@ -272,22 +336,74 @@ export default class Environment {
 
     this.moonLight.intensity = lerp(prevKey.moonInt, nextKey.moonInt, progress)
 
-    // Update visibility based on intensity threshold
     this.sunLight.visible = this.sunLight.intensity > 0.01
     this.moonLight.visible = this.moonLight.intensity > 0.01
 
-    // Disable shadow casting at night to prevent weird long shadows
     this.sunLight.castShadow = this.sunLight.intensity > 0.5
     this.moonLight.castShadow = this.moonLight.intensity > 0.3
 
-    // Update sky overlay
-    if (this.skyOverlay) {
-      this.skyOverlay.material.color.copy(lerpColor(prevKey.ovCol, nextKey.ovCol, progress))
-      this.skyOverlay.material.opacity = lerp(prevKey.ovOp, nextKey.ovOp, progress)
+    // Update Skybox Opacities
+    if (this.daySkybox && this.nightSkybox) {
+      this.daySkybox.material.opacity = 1 - nightMix
+      this.nightSkybox.material.opacity = nightMix
+      this.nightSkybox.material.color.set(this.nightLighting.skyboxColor)
 
-      // Darken sky in storm
+      // Ensure they are visible/invisible as needed to save performance
+      this.daySkybox.visible = this.daySkybox.material.opacity > 0.01
+      this.nightSkybox.visible = this.nightSkybox.material.opacity > 0.01
+    }
+
+    // Swap Environment Map (Reflections)
+    // We swap when nightMix crosses 0.5 to avoid rapid switching
+    if (this.scene.environment) {
+      const environmentMap = this.experience.resources.items.environmentMap
+      const nightEnvironmentMap = this.experience.resources.items.nightEnvironmentMap
+
+      if (nightMix > 0.5 && this.scene.environment !== nightEnvironmentMap && nightEnvironmentMap) {
+        this.scene.environment = nightEnvironmentMap
+      } else if (nightMix <= 0.5 && this.scene.environment !== environmentMap && environmentMap) {
+        this.scene.environment = environmentMap
+      }
+    }
+
+    // Update sky overlay (Still used for weather/fog blending)
+    if (this.skyOverlay) {
+      // We reduce the overlay opacity influence from keyframes since we have real skyboxes now
+      // But we keep it for weather and extreme darkness if needed
+      let targetOp = lerp(prevKey.ovOp, nextKey.ovOp, progress)
+      let targetCol = lerpColor(prevKey.ovCol, nextKey.ovCol, progress)
+
+      // If we have a night skybox, we don't need the black overlay to hide the day skybox anymore
+      // So we can reduce the overlay opacity significantly at night
+      if (this.nightSkybox) {
+        // Apply user configured night overlay settings
+        if (nightMix > 0) {
+          const nightOverlayCol = new THREE.Color(this.nightLighting.overlayColor)
+          targetOp = lerp(targetOp, this.nightLighting.overlayOpacity, nightMix)
+          targetCol.lerp(nightOverlayCol, nightMix)
+        } else {
+          targetOp *= 0.2 // Reduce overlay influence during day/transition if needed
+        }
+      }
+
+      this.skyOverlay.material.color.copy(targetCol)
+      this.skyOverlay.material.opacity = targetOp
+
+      // Blend with Fog
+      // Calculate how much the fog should obscure the sky
+      // 0.014 is base density, 0.05 is very thick
+      const fogCover = Math.min(1.0, (fogDens - 0.01) * 30)
+
+      if (fogCover > 0) {
+        this.skyOverlay.material.color.lerp(fogCol, fogCover)
+        this.skyOverlay.material.opacity = Math.max(this.skyOverlay.material.opacity, fogCover)
+      }
+
+      // Apply rain weather effect
       if (this.weatherFactor > 0) {
-        this.skyOverlay.material.color.lerp(new THREE.Color('#111122'), this.weatherFactor)
+        // Use the same rainy fog color for consistency
+        const rainyFogCol = new THREE.Color('#222233')
+        this.skyOverlay.material.color.lerp(rainyFogCol, this.weatherFactor * 0.6)
         this.skyOverlay.material.opacity = lerp(this.skyOverlay.material.opacity, 0.9, this.weatherFactor)
       }
     }
@@ -301,10 +417,8 @@ export default class Environment {
       this.scene.backgroundIntensity = bgInt
     }
 
-    // Update environment map intensity
     this.updateEnvMapIntensity(envInt)
 
-    // Update fog
     if (this.scene.fog) {
       this.scene.fog.density = fogDens
       this.scene.fog.color.copy(fogCol)
@@ -312,30 +426,78 @@ export default class Environment {
   }
 
   setEnvironmentMap() {
-    // Use HDR skybox
     const environmentMap = this.experience.resources.items.environmentMap
+    const nightEnvironmentMap = this.experience.resources.items.nightEnvironmentMap
 
     if (environmentMap) {
       environmentMap.mapping = THREE.EquirectangularReflectionMapping
-      this.scene.background = environmentMap
+      // this.scene.background = environmentMap // Removed: Using skybox spheres instead
       this.scene.environment = environmentMap
 
-      // Create a color overlay for time-of-day filtering
-      const overlayGeometry = new THREE.SphereGeometry(490, 32, 32)
-      const overlayMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.0,
+      // Create Day Skybox
+      const dayGeometry = new THREE.SphereGeometry(490, 64, 64)
+      const dayMaterial = new THREE.MeshBasicMaterial({
+        map: environmentMap,
         side: THREE.BackSide,
+        transparent: true,
+        opacity: 1.0,
+        toneMapped: false, // Important for HDRI
+        fog: false,
         depthWrite: false
       })
-
-      this.skyOverlay = new THREE.Mesh(overlayGeometry, overlayMaterial)
-      this.scene.add(this.skyOverlay)
-
-      // Set initial intensities
-      this.scene.backgroundIntensity = 1.0
-      this.updateEnvMapIntensity(1.0)
+      this.daySkybox = new THREE.Mesh(dayGeometry, dayMaterial)
+      this.daySkybox.renderOrder = -1
+      // Rotate to align with default environment rotation if needed
+      this.daySkybox.rotation.y = Math.PI
+      this.scene.add(this.daySkybox)
     }
+
+    if (nightEnvironmentMap) {
+      console.log('Creating Night Skybox with map:', nightEnvironmentMap)
+      nightEnvironmentMap.mapping = THREE.EquirectangularReflectionMapping
+
+      // Optimize for sharpness
+      nightEnvironmentMap.generateMipmaps = false
+      nightEnvironmentMap.minFilter = THREE.LinearFilter
+      nightEnvironmentMap.magFilter = THREE.LinearFilter
+      nightEnvironmentMap.anisotropy = this.experience.renderer.instance.capabilities.getMaxAnisotropy()
+
+      // Create Night Skybox
+      const nightGeometry = new THREE.SphereGeometry(489, 64, 64) // Slightly smaller to avoid z-fighting
+      const nightMaterial = new THREE.MeshBasicMaterial({
+        map: nightEnvironmentMap,
+        color: 0xffffff, // Full brightness as requested
+        side: THREE.BackSide,
+        transparent: true,
+        opacity: 0.0,
+        toneMapped: false,
+        fog: false,
+        depthWrite: false
+      })
+      this.nightSkybox = new THREE.Mesh(nightGeometry, nightMaterial)
+      this.nightSkybox.renderOrder = -1
+      this.nightSkybox.rotation.y = Math.PI
+      this.scene.add(this.nightSkybox)
+      console.log('Night Skybox added to scene', this.nightSkybox)
+    } else {
+      console.warn('Night Environment Map is missing!')
+    }
+
+    // Sky Overlay (for weather/fog)
+    const overlayGeometry = new THREE.SphereGeometry(488, 32, 32) // Inside both skyboxes
+    const overlayMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.BackSide,
+      depthWrite: false,
+      fog: false
+    })
+
+    this.skyOverlay = new THREE.Mesh(overlayGeometry, overlayMaterial)
+    this.scene.add(this.skyOverlay)
+
+    this.scene.backgroundIntensity = 1.0
+    this.updateEnvMapIntensity(1.0)
   }
 }

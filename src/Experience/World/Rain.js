@@ -17,6 +17,12 @@ export default class Rain {
     this.setMaterial()
     this.setMesh()
     this.setAudio()
+
+    // Sequence state
+    this.isSequenceActive = false
+    this.targetIntensity = 0
+    this.intensityChangeSpeed = 0
+    this.sequenceTimeouts = []
   }
 
   setGeometry() {
@@ -55,6 +61,7 @@ export default class Rain {
   setMesh() {
     this.mesh = new THREE.LineSegments(this.geometry, this.material)
     this.mesh.visible = false
+    this.mesh.frustumCulled = false // Prevent culling as vertices move with camera
     this.scene.add(this.mesh)
   }
 
@@ -133,7 +140,101 @@ export default class Rain {
     }
   }
 
+  startSequence() {
+    console.log('Starting rain sequence')
+    this.isSequenceActive = true
+    this.stopSequence(false) // Clear any existing timeouts but don't unset active flag
+
+    // Helper to schedule steps
+    const schedule = (delay, callback) => {
+      const timeout = setTimeout(() => {
+        if (this.isSequenceActive) callback()
+      }, delay)
+      this.sequenceTimeouts.push(timeout)
+    }
+
+    // 1. T+5s: Enable rain, Intensity 0.1
+    schedule(5000, () => {
+      console.log('Sequence: Rain ON, Intensity 0.1')
+      this.intensity = 0.1
+      this.enable()
+      this.targetIntensity = 0.1
+    })
+
+    // 2. T+12s: Start transition to 0.5 over 5s
+    // (5s start + 7s wait = 12s)
+    schedule(12000, () => {
+      console.log('Sequence: Transition to 0.5')
+      this.targetIntensity = 0.5
+      this.intensityChangeSpeed = (0.5 - 0.1) / 5.0 // per second
+    })
+
+    // 3. T+27s: Start transition to 1.0 over 5s
+    // (12s start + 5s transition + 10s wait = 27s)
+    schedule(27000, () => {
+      console.log('Sequence: Transition to 1.0')
+      this.targetIntensity = 1.0
+      this.intensityChangeSpeed = (1.0 - 0.5) / 5.0
+    })
+
+    // 4. T+47s: Start transition to 0.1 over 10s
+    // (27s start + 5s transition + 15s wait = 47s)
+    schedule(47000, () => {
+      console.log('Sequence: Transition to 0.1')
+      this.targetIntensity = 0.1
+      this.intensityChangeSpeed = (0.1 - 1.0) / 10.0 // Decreasing
+    })
+
+    // 5. T+67s: Turn off rain
+    // (47s start + 10s transition + 10s wait = 67s)
+    schedule(67000, () => {
+      console.log('Sequence: Rain OFF')
+      this.disable()
+      this.isSequenceActive = false
+    })
+
+    // 6. T+127s: Restart sequence
+    // (67s end + 60s wait = 127s)
+    schedule(127000, () => {
+      console.log('Sequence: Restarting loop')
+      this.startSequence()
+    })
+  }
+
+  stopSequence(resetFlag = true) {
+    if (resetFlag) {
+      console.log('Stopping rain sequence')
+      this.isSequenceActive = false
+    }
+    this.sequenceTimeouts.forEach(clearTimeout)
+    this.sequenceTimeouts = []
+    this.intensityChangeSpeed = 0
+  }
+
   update() {
+    // Handle sequence transitions
+    if (this.isSequenceActive && this.intensityChangeSpeed !== 0) {
+      const delta = this.experience.time.delta * 0.001 // seconds
+      this.intensity += this.intensityChangeSpeed * delta
+
+      // Clamp to target
+      if (this.intensityChangeSpeed > 0 && this.intensity >= this.targetIntensity) {
+        this.intensity = this.targetIntensity
+        this.intensityChangeSpeed = 0
+      } else if (this.intensityChangeSpeed < 0 && this.intensity <= this.targetIntensity) {
+        this.intensity = this.targetIntensity
+        this.intensityChangeSpeed = 0
+      }
+
+      // Update dependent systems
+      if (this.experience.world.environment) {
+        this.experience.world.environment.setStormy(this.intensity)
+      }
+      if (this.experience.world.rainSplashes) {
+        this.experience.world.rainSplashes.setIntensity(this.intensity)
+      }
+    }
+
     // Update visible count based on intensity
     this.geometry.setDrawRange(0, Math.floor(this.count * this.intensity) * 2)
 
@@ -145,7 +246,7 @@ export default class Rain {
     if (!this.enabled) return
 
     const positions = this.geometry.attributes.position.array
-    const speed = 0.8
+    const speed = 0.8 // Reverted to original fixed speed
 
     // Get wind from environment
     let windX = 0

@@ -61,13 +61,38 @@ export default class Experience {
       // Apply shadows
       if (this.renderer.instance.shadowMap) {
         this.renderer.instance.shadowMap.enabled = quality.shadowsEnabled
-        console.log(`Shadows ${quality.shadowsEnabled ? 'enabled' : 'disabled'}`)
+        this.renderer.instance.shadowMap.autoUpdate = quality.shadowAutoUpdate
+        console.log(`Shadows ${quality.shadowsEnabled ? 'enabled' : 'disabled'}, auto-update: ${quality.shadowAutoUpdate}`)
+      }
+
+      // Apply shadow map size to all shadow-casting lights
+      if (this.world && this.world.environment) {
+        [this.world.environment.sunLight, this.world.environment.moonLight].forEach(light => {
+          if (light && light.shadow) {
+            light.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize)
+            light.shadow.map = null // Force recreation
+          }
+        })
+      }
+
+      // Apply lantern shadow quality
+      if (this.world && this.world.lantern && this.world.lantern.light && this.world.lantern.light.shadow) {
+        this.world.lantern.light.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize)
+        this.world.lantern.light.shadow.map = null
+      }
+
+      // Apply pencil filter
+      if (this.renderer.pencilPass) {
+        this.renderer.pencilPass.enabled = quality.pencilFilterEnabled
       }
 
       // Apply particle count (will be handled by FallingPetals if it exists)
       if (this.world && this.world.fallingPetals) {
         this.world.fallingPetals.setParticleCount(quality.particleCount)
       }
+
+      // Force shadow update after changes
+      this.renderer.updateShadows()
     })
 
     // Update shadows once after scene is set up

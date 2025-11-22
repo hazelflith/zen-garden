@@ -15,6 +15,11 @@ export default [
     path: 'https://y91qxhmqe28jmwu9.public.blob.vercel-storage.com/citrus_orchard_road_puresky_2k.exr'
   },
   {
+    name: 'nightEnvironmentMap',
+    type: 'hdrTexture',
+    path: 'https://y91qxhmqe28jmwu9.public.blob.vercel-storage.com/NightSkyHDRI001_8K_HDR.exr'
+  },
+  {
     name: 'cherryBlossomTrees',
     type: 'gltfModel',
     path: 'https://y91qxhmqe28jmwu9.public.blob.vercel-storage.com/cherry_blossom_trees.glb'
@@ -58,5 +63,10 @@ export default [
     name: 'cloudTexture',
     type: 'texture',
     path: '/textures/cloud.png'
+  },
+  {
+    name: 'backgroundMusic',
+    type: 'audio',
+    path: 'https://y91qxhmqe28jmwu9.public.blob.vercel-storage.com/background-music.mp3'
   }
 ]

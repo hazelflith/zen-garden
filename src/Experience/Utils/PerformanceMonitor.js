@@ -22,26 +22,32 @@ export default class PerformanceMonitor extends EventEmitter {
       low: {
         pixelRatio: 1,
         shadowMapSize: 512,
-        shadowsEnabled: false, // Disable shadows completely for max performance
+        shadowsEnabled: true, // Keep shadows but lower quality
+        shadowAutoUpdate: false, // Manual shadow updates only
         bloomEnabled: false,
         particleCount: 100,
-        antialiasEnabled: false
+        antialiasEnabled: false,
+        pencilFilterEnabled: false
       },
       medium: {
         pixelRatio: 1.5,
         shadowMapSize: 1024,
         shadowsEnabled: true,
+        shadowAutoUpdate: true, // Auto-update shadows
         bloomEnabled: true,
-        particleCount: 150,
-        antialiasEnabled: true
+        particleCount: 200,
+        antialiasEnabled: true,
+        pencilFilterEnabled: false
       },
       max: {
         pixelRatio: 2,
-        shadowMapSize: 2048,
+        shadowMapSize: 4096, // Match current high-quality shadows
         shadowsEnabled: true,
+        shadowAutoUpdate: true,
         bloomEnabled: true,
-        particleCount: 200,
-        antialiasEnabled: true
+        particleCount: 300,
+        antialiasEnabled: true,
+        pencilFilterEnabled: false // Enable pencil filter at max
       }
     }
 

@@ -82,7 +82,7 @@ export default class RainSplashes {
       blending: THREE.AdditiveBlending,
       uniforms: {
         uTexture: { value: texture },
-        uColor: { value: new THREE.Color(0xccf0ff) }
+        uColor: { value: new THREE.Color(0x667880) } // 50% darker
       },
       vertexShader: `
         attribute float aScale;

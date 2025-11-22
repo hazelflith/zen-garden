@@ -14,7 +14,7 @@ export default class Terrain {
   }
 
   setGeometry() {
-    this.geometry = new THREE.PlaneGeometry(200, 200, 256, 256) // Doubled from 100x100
+    this.geometry = new THREE.PlaneGeometry(400, 400, 256, 256) // Increased from 200x200 for better horizon blend
     this.geometry.rotateX(- Math.PI * 0.5)
 
     this.applyHeight()
@@ -48,11 +48,11 @@ export default class Terrain {
       height = Math.sin(distance * 10.0) * 0.03
 
       // Slight mound in center
-      height += Math.max(0, (1.0 - distance * 0.5)) * 0.2
+      height += Math.max(0, (1.0 - distance * 0.5)) * 0.1
     }
     // Water Ring (3.5 - 4.5)
     else if (distance < 4.5) {
-      height = -0.2
+      height = -0.2 // Lowered by 20%
     }
     // Inner Path (4.5 - 6.0) - FLAT
     else if (distance < 6.0) {
@@ -109,9 +109,9 @@ export default class Terrain {
       color: '#858585'
     })
 
-    const uSandColor = new THREE.Color('#f5e8d1')
-    const uGrassColor = new THREE.Color('#a6bf8c')
-    const uPathColor = new THREE.Color('#eedfce')
+    const uSandColor = new THREE.Color('#c2b280')
+    const uGrassColor = new THREE.Color('#556b2f')
+    const uPathColor = new THREE.Color('#8b7355')
 
     this.material.onBeforeCompile = (shader) => {
       shader.uniforms.uSandColor = { value: uSandColor }
@@ -189,7 +189,7 @@ export default class Terrain {
                     // Water Ring (3.5 - 4.5)
                     else if(distanceToCenter < 4.5)
                     {
-                        mixColor = uSandColor * 0.6; // Darker wet sand
+                        mixColor = uSandColor; // Natural color - let real shadows handle darkening
                     }
                     // Inner Path (4.5 - 6.0)
                     else if(distanceToCenter < 6.0)

@@ -87,7 +87,7 @@ export default class Trees {
           new THREE.Vector3(x, y, z), // Absolute position
           0.27 + Math.random() * 0.18,
           Math.random() * Math.PI * 2,
-          this.windShader
+          null // Wind disabled for trees
         )
 
         // We still need to track it for updates
@@ -103,7 +103,7 @@ export default class Trees {
           new THREE.Vector3(0, 0, 0),
           0.27 + Math.random() * 0.18,
           Math.random() * Math.PI * 2,
-          this.windShader
+          null // Wind disabled for trees
         )
 
         // Medium detail tree (15-30 units) - 60% segments
@@ -112,7 +112,7 @@ export default class Trees {
           new THREE.Vector3(0, 0, 0),
           0.27 + Math.random() * 0.18,
           Math.random() * Math.PI * 2,
-          this.windShader,
+          null, // Wind disabled for trees
           0.6 // Reduce detail to 60%
         )
 
@@ -122,7 +122,7 @@ export default class Trees {
           new THREE.Vector3(0, 0, 0),
           0.27 + Math.random() * 0.18,
           Math.random() * Math.PI * 2,
-          this.windShader,
+          null, // Wind disabled for trees
           0.3 // Reduce detail to 30%
         )
 

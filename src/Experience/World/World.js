@@ -49,6 +49,9 @@ export default class World {
 
       // Update environment settings after all objects are created
       this.environment.updateSunPosition()
+
+      // Start automatic rain sequence
+      this.rain.startSequence()
     })
   }
 

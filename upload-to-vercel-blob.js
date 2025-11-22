@@ -35,6 +35,7 @@ async function uploadResources() {
         const blob = await put(file, fileBuffer, {
           access: 'public',
           token: BLOB_READ_WRITE_TOKEN,
+          allowOverwrite: true,
         });
 
         uploadedUrls[file] = blob.url;

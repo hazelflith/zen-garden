@@ -26,13 +26,13 @@ export default class Renderer {
       powerPreference: 'high-performance',
       stencil: false // Disable stencil buffer for better performance
     })
-    this.instance.physicallyCorrectLights = true
+    this.instance.useLegacyLights = false // Use modern physically-based lighting
     this.instance.outputColorSpace = THREE.SRGBColorSpace
     this.instance.toneMapping = THREE.CineonToneMapping
     this.instance.toneMappingExposure = 1.0
     this.instance.shadowMap.enabled = true
     this.instance.shadowMap.type = THREE.PCFSoftShadowMap
-    this.instance.shadowMap.autoUpdate = false // Manual shadow update for performance
+    this.instance.shadowMap.autoUpdate = true // Auto-update for real-time shadows
     this.instance.setClearColor('#ebe5d0')
     this.instance.setSize(this.sizes.width, this.sizes.height)
     this.instance.setPixelRatio(Math.min(this.sizes.pixelRatio, 2))
