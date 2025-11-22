@@ -189,9 +189,9 @@ export default class Environment {
     // Update Time of Day
     if (!this.isTimePaused) {
       const delta = this.experience.time.delta
-      // 1 real second = 2 in-game minutes
-      // 2 in-game minutes = 2/60 hours
-      this.timeOfDay += (delta / 1000) * (2 / 60)
+      // 1 real second = 6 in-game minutes
+      // 6 in-game minutes = 6/60 hours = 0.1 hours
+      this.timeOfDay += (delta / 1000) * (6 / 60)
 
       if (this.timeOfDay >= 24) {
         this.timeOfDay = 0
